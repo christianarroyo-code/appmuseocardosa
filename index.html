@@ -65,10 +65,10 @@ main{max-width:720px;margin:0 auto;padding:16px 18px 40px;}
 .screen.active{display:block;}
 
 .banner{
-  display:flex;align-items:center;gap:8px;background:var(--red-xpale);border:1px solid var(--red-pale);
+  background:var(--red-xpale);border:1px solid var(--red-pale);line-height:1.6;
   border-radius:var(--rs);padding:11px 14px;font-size:.8rem;color:var(--red-900);margin-bottom:16px;
 }
-.banner strong{font-weight:700;}
+.banner strong{font-weight:700;white-space:nowrap;}
 
 /* photo dropzone */
 .dropzone{
@@ -78,6 +78,7 @@ main{max-width:720px;margin:0 auto;padding:16px 18px 40px;}
 }
 .dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
 .dropzone img{width:100%;height:220px;object-fit:cover;}
+#dzPlaceholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 20px;}
 .dropzone .dz-icon{font-size:28px;}
 .dropzone .dz-title{font-size:14px;font-weight:600;color:var(--ink);}
 .dropzone .dz-sub{font-size:12px;color:var(--ink-muted);}
