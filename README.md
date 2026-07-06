@@ -1,52 +1,69 @@
 # Museo Cardosa
 
 Catálogo digital de las obras de la artista Cardosa. Sube o haz una foto de un
-cuadro, el curador digital (Claude) le pone título, técnica, año, dimensiones
-y una lectura curatorial, y lo archiva solo en la sala que le corresponde —
-si ninguna sala existente encaja, crea una nueva.
+cuadro, el curador digital (Gemini, vía Firebase AI Logic) le pone título,
+técnica, año, dimensiones y una lectura curatorial, y lo archiva solo en la
+sala que le corresponde — si ninguna sala existente encaja, crea una nueva.
 
-Es una PWA de un solo archivo (sin build, sin framework), igual en espíritu a
-"Jardín de Piedra de Fuego": HTML/CSS/JS plano, instalable, con IndexedDB
-(con fallback a localStorage) como almacén local.
+Es una PWA de un solo archivo (sin build ni framework para la app en sí),
+igual en espíritu a "Jardín de Piedra de Fuego": HTML/CSS/JS plano,
+instalable, con IndexedDB (con fallback a localStorage) como almacén local.
+Reutiliza el mismo proyecto de Firebase que el jardín.
 
 ## Estructura
 
 - `index.html` — toda la app: interfaz, estilos y lógica.
 - `manifest.json` / `sw.js` / `icon-*.png` — la hacen instalable como PWA.
-- `shared/curator.mjs` — el prompt del curador y el parseo de la respuesta de Claude.
-- `netlify/functions/analyze.mjs` — única pieza de servidor: recibe la foto,
-  llama a Claude con `ANTHROPIC_API_KEY` (nunca viaja al navegador) y devuelve
-  la ficha catalográfica.
-- `netlify.toml` — publica la raíz tal cual y redirige `/api/*` a la función.
+- `vendor/firebase-ai.bundle.js` — el SDK de Firebase AI Logic (`firebase/ai`)
+  ya empaquetado en un único archivo ESM, para poder importarlo desde
+  `index.html` sin bundler. Se genera con `tools/build-firebase-ai/` y se
+  versiona en el repo — solo hay que regenerarlo si cambia esta integración.
 
-A diferencia del jardín (que resuelve su autocompletado con APIs públicas
-gratuitas — GBIF y Wikipedia, sin clave), no existe una base pública de las
-obras de Cardosa: identificarlas requiere visión por IA, y esa llamada sí
-necesita una clave secreta. Por eso hace falta esta única función, aunque
-todo lo demás sea estático.
+No hace falta servidor ni clave secreta: a diferencia de Claude/Anthropic, la
+llamada a Gemini desde `firebase/ai` va directo del navegador a Firebase,
+protegida por la config pública del proyecto (igual que la de Firestore/Storage
+del jardín) en vez de una API key de servidor.
+
+## Regenerar `vendor/firebase-ai.bundle.js`
+
+Solo si cambias el modelo, el prompt del curador o la versión del SDK:
+
+```
+cd tools/build-firebase-ai
+npm install
+npm run build
+```
 
 ## Desarrollo local
 
-Con la [Netlify CLI](https://docs.netlify.com/cli/get-started/) (sirve los
-estáticos y la función juntos, tal como en producción):
+Al ser estático, sirve con cualquier servidor de archivos, por ejemplo:
 
-1. `npm install -g netlify-cli` (si no la tienes)
-2. Copia `.env.example` a `.env` y añade tu `ANTHROPIC_API_KEY`
-3. `netlify dev` — levanta la app en `http://localhost:8888`
+```
+npx serve .
+```
 
 ## Desplegar en Netlify
 
-1. **Add new site → Import an existing project** y conecta este repo
-   (o `netlify deploy --prod` desde esta carpeta con la CLI).
-2. En **Site settings → Environment variables**, añade `ANTHROPIC_API_KEY`.
-3. Netlify publica la raíz y despliega `netlify/functions/analyze.mjs` como función.
+**Add new site → Import an existing project** y conecta este repo (o
+`netlify deploy --prod` desde esta carpeta con la CLI) — no hace falta
+configurar ninguna variable de entorno.
 
-Arrastrar solo el HTML/carpeta a app.netlify.com/drop **no basta**: sin la
-función desplegada, `/api/analyze` no existe y "Analizar con IA" fallará.
+## Habilitar Gemini en el proyecto de Firebase (una sola vez)
+
+Si el proyecto (`jardin-d3092`) todavía no tiene **Firebase AI Logic**
+habilitado:
+
+1. En [console.firebase.google.com](https://console.firebase.google.com),
+   abre el proyecto → **Build → AI Logic → Get started**.
+2. Elige **Gemini Developer API** como backend (tiene capa gratuita, no pide
+   tarjeta).
+3. Sigue el asistente para activarlo — no requiere cambiar nada más en el código.
 
 ## Notas
 
 - Las obras (con su imagen en base64) se guardan en IndexedDB del navegador,
   con fallback a localStorage si IndexedDB no está disponible.
-- Las salas no son una lista fija: Claude decide, al analizar cada obra, si
+- Las salas no son una lista fija: Gemini decide, al analizar cada obra, si
   encaja en una sala existente o si hay que crear una nueva.
+- El prompt del curador y el modelo (`gemini-2.5-flash`) están en
+  `tools/build-firebase-ai/src/entry.js`.

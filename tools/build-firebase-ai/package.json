@@ -1,0 +1,13 @@
+{
+  "name": "build-firebase-ai",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Empaqueta el SDK modular de Firebase AI Logic (firebase/ai) en un único archivo ESM autocontenido para usar sin bundler en index.html. Solo se ejecuta a mano cuando cambia esta integración; el resultado (vendor/firebase-ai.bundle.js) se versiona en el repo.",
+  "scripts": {
+    "build": "esbuild src/entry.js --bundle --format=esm --platform=browser --outfile=../../vendor/firebase-ai.bundle.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "firebase": "^12.15.0"
+  }
+}

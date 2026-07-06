@@ -281,8 +281,9 @@ nav.bottomnav .ntab .nicon{font-size:19px;}
   </div>
 </div>
 
-<script>
+<script type="module">
 'use strict';
+import { analyzePaintingWithGemini } from './vendor/firebase-ai.bundle.js';
 
 /* ---------- almacenamiento: IndexedDB con fallback a localStorage ---------- */
 const DB_NAME = 'museo-cardosa-db', STORE = 'kv', LS_KEY = 'museo-cardosa-obras';
@@ -374,15 +375,8 @@ function compress(file) {
     reader.readAsDataURL(file);
   });
 }
-async function analyzeWithClaude(b64, existingSalas) {
-  const response = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ b64, existingSalas }),
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error('API ' + response.status + ': ' + text.slice(0, 150));
-  return JSON.parse(text);
+async function analyzeWithGemini(b64, existingSalas) {
+  return analyzePaintingWithGemini(b64, existingSalas);
 }
 
 /* ---------- navegación entre pantallas ---------- */
@@ -443,7 +437,7 @@ btnAnalyze.addEventListener('click', async () => {
   btnAnalyze.textContent = '✨ Analizando…';
   try {
     const existingSalas = Object.keys(groupBySala(obras));
-    const info = await analyzeWithClaude(draft.b64, existingSalas);
+    const info = await analyzeWithGemini(draft.b64, existingSalas);
     draft = { ...draft, ...info };
     renderDraft();
   } catch (err) {
