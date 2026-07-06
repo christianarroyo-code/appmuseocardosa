@@ -41,6 +41,8 @@ function compress(file) {
   });
 }
 
+const EMPTY_DRAFT = { b64: "", title: "", year: "", technique: "", style: "", dimensions: "", description: "", sala: "" };
+
 async function analyzeWithClaude(b64, existingSalas) {
   const response = await fetch("/api/analyze", {
     method: "POST",
@@ -79,6 +81,18 @@ function Cover({ items, bg }) {
   );
 }
 
+function Field({ label, value, onChange, placeholder, textarea }) {
+  const box = { width: "100%", padding: "10px 12px", border: "1px solid #ede8e2", borderRadius: 10, fontSize: 13, color: "#1c1714", background: "#fff", fontFamily: "inherit" };
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9a9088", marginBottom: 6 }}>{label}</div>
+      {textarea
+        ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={4} style={{ ...box, resize: "vertical", lineHeight: 1.5 }} />
+        : <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={box} />}
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [paintings, setPaintings] = useState(() => {
@@ -92,6 +106,7 @@ export default function App() {
   const [activeSala, setActiveSala] = useState("");
   const [activeP, setActiveP] = useState(null);
   const [prevScreen, setPrev] = useState("salas");
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(paintings)); } catch {}
@@ -103,30 +118,49 @@ export default function App() {
   const groups = {};
   paintings.forEach((p) => { (groups[p.sala] ||= []).push(p); });
 
-  async function onFilePicked(e) {
-    const files = Array.from(e.target.files || []);
+  function goToNueva() {
+    setDraft(EMPTY_DRAFT);
+    setScreen("nueva");
+  }
+
+  async function onDraftPhoto(e) {
+    const file = e.target.files?.[0];
     e.target.value = "";
-    if (!files.length) return;
-    const knownSalas = Object.keys(groups);
-    for (const file of files) {
-      try {
-        setStatus("reading");
-        setErrorMsg("");
-        const b64 = await compress(file);
-        setStatus("analyzing");
-        const info = await analyzeWithClaude(b64, knownSalas);
-        const p = { id: Date.now() + Math.random(), b64, sala: info.sala || "Sala Miscelánea", ...info };
-        if (!knownSalas.includes(p.sala)) knownSalas.push(p.sala);
-        setPaintings((prev) => [...prev, p]);
-        setStatus("idle");
-        setPrev("salas");
-        setActiveP(p);
-        setScreen("detail");
-      } catch (err) {
-        setStatus("error");
-        setErrorMsg(err.message);
-      }
+    if (!file) return;
+    try {
+      setStatus("reading");
+      setErrorMsg("");
+      const b64 = await compress(file);
+      setDraft((d) => ({ ...d, b64 }));
+      setStatus("idle");
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err.message);
     }
+  }
+
+  async function onAnalyzeDraft() {
+    if (!draft.b64) return;
+    try {
+      setStatus("analyzing");
+      setErrorMsg("");
+      const info = await analyzeWithClaude(draft.b64, Object.keys(groups));
+      setDraft((d) => ({ ...d, ...info }));
+      setStatus("idle");
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err.message);
+    }
+  }
+
+  function onSaveDraft() {
+    if (!draft.b64 || !draft.title) return;
+    const p = { id: Date.now() + Math.random(), ...draft, sala: draft.sala || "Sala Miscelánea" };
+    setPaintings((prev) => [...prev, p]);
+    setDraft(EMPTY_DRAFT);
+    setPrev("salas");
+    setActiveP(p);
+    setScreen("detail");
   }
 
   const isLoading = status === "reading" || status === "analyzing";
@@ -143,33 +177,30 @@ export default function App() {
             <span style={{ fontSize: 19 }}>{ic}</span>{lb}
           </div>
         ))}
-        <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", color: "#9a9088", fontSize: 9, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-          <input type="file" accept="image/*" multiple onChange={onFilePicked} style={{ position: "absolute", width: 1, height: 1, opacity: 0 }} />
+        <div onClick={goToNueva} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", color: "#9a9088", fontSize: 9, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
           <span style={{ fontSize: 19 }}>➕</span>Subir
-        </label>
+        </div>
       </div>
     );
   }
 
   function UploadHero() {
     return (
-      <label style={{ display: "block", margin: "0 24px 24px", border: "2px dashed #ddd8d0", borderRadius: 16, padding: "24px 20px", textAlign: "center", cursor: "pointer", background: "#f5f2ee" }}>
-        <input type="file" accept="image/*" multiple onChange={onFilePicked} style={{ position: "absolute", width: 1, height: 1, opacity: 0 }} />
+      <div onClick={goToNueva} style={{ margin: "0 24px 24px", border: "2px dashed #ddd8d0", borderRadius: 16, padding: "24px 20px", textAlign: "center", cursor: "pointer", background: "#f5f2ee" }}>
         <div style={{ fontSize: 30, marginBottom: 8 }}>🖼️</div>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#1c1714", marginBottom: 4 }}>Añadir obra al museo</div>
-        <div style={{ fontSize: 12, color: "#9a9088", lineHeight: 1.5 }}>Claude analizará la pintura y la catalogará automáticamente</div>
-      </label>
+        <div style={{ fontSize: 12, color: "#9a9088", lineHeight: 1.5 }}>Sube una foto y el curador digital la catalogará</div>
+      </div>
     );
   }
 
   function UploadStrip() {
     return (
-      <label style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 14px", border: "2px dashed #ddd8d0", borderRadius: 12, padding: "13px 16px", cursor: "pointer", background: "#fff", flexShrink: 0 }}>
-        <input type="file" accept="image/*" multiple onChange={onFilePicked} style={{ position: "absolute", width: 1, height: 1, opacity: 0 }} />
+      <div onClick={goToNueva} style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 16px 14px", border: "2px dashed #ddd8d0", borderRadius: 12, padding: "13px 16px", cursor: "pointer", background: "#fff", flexShrink: 0 }}>
         <span style={{ fontSize: 22 }}>➕</span>
-        <div><div style={{ fontSize: 13, fontWeight: 600, color: "#1c1714" }}>Subir nueva obra</div><div style={{ fontSize: 11, color: "#9a9088", marginTop: 2 }}>Claude la clasifica automáticamente</div></div>
+        <div><div style={{ fontSize: 13, fontWeight: 600, color: "#1c1714" }}>Subir nueva obra</div><div style={{ fontSize: 11, color: "#9a9088", marginTop: 2 }}>El curador digital la clasifica</div></div>
         <span style={{ marginLeft: "auto", color: "#c8102e", fontSize: 18 }}>↑</span>
-      </label>
+      </div>
     );
   }
 
@@ -317,6 +348,53 @@ export default function App() {
       </div>
     );
   }
+
+  /* NUEVA OBRA */
+  if (screen === "nueva") return (
+    <div style={PHONE}>
+      <style>{`@keyframes cspin{to{transform:rotate(360deg)}}`}</style>
+      <Overlay />
+      <div style={NAV(true)}><button style={IB} onClick={() => setScreen("salas")}>‹</button><Logo sm /><div style={{ width: 36 }} /></div>
+      <div style={{ padding: "10px 24px 4px", flexShrink: 0 }}>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 600, color: "#1c1714" }}>Nueva obra</div>
+        <div style={{ fontSize: 12, color: "#9a9088", marginTop: 2 }}>Sube o haz una foto y deja que el curador digital la cataloge</div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 32px" }}>
+        <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, border: "2px dashed #ddd8d0", borderRadius: 16, textAlign: "center", cursor: "pointer", background: "#f5f2ee", overflow: "hidden", marginBottom: 14, minHeight: 190, position: "relative" }}>
+          <input type="file" accept="image/*" onChange={onDraftPhoto} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />
+          {draft.b64
+            ? <img src={`data:image/jpeg;base64,${draft.b64}`} alt="" style={{ width: "100%", height: 190, objectFit: "cover" }} />
+            : <>
+                <div style={{ fontSize: 30 }}>📷</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#1c1714" }}>Foto de la obra</div>
+                <div style={{ fontSize: 12, color: "#9a9088" }}>Toca para hacer o subir una foto</div>
+              </>}
+        </label>
+
+        <button onClick={onAnalyzeDraft} disabled={!draft.b64 || isLoading} style={{ width: "100%", padding: 13, marginBottom: 22, border: "none", borderRadius: 24, background: draft.b64 ? "#c8102e" : "#ede8e2", color: draft.b64 ? "#fff" : "#9a9088", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: draft.b64 ? "pointer" : "not-allowed" }}>
+          ✨ Analizar con IA
+        </button>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Field label="Título" value={draft.title} onChange={(v) => setDraft((d) => ({ ...d, title: v }))} placeholder="ej. Atardecer en el jardín" />
+          <div style={{ display: "flex", gap: 10 }}>
+            <Field label="Año" value={draft.year} onChange={(v) => setDraft((d) => ({ ...d, year: v }))} placeholder="ej. 2021" />
+            <Field label="Técnica" value={draft.technique} onChange={(v) => setDraft((d) => ({ ...d, technique: v }))} placeholder="ej. Óleo" />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Field label="Estilo" value={draft.style} onChange={(v) => setDraft((d) => ({ ...d, style: v }))} placeholder="ej. Paisaje" />
+            <Field label="Dimensiones" value={draft.dimensions} onChange={(v) => setDraft((d) => ({ ...d, dimensions: v }))} placeholder="ej. 80 × 60 cm" />
+          </div>
+          <Field label="Sala" value={draft.sala} onChange={(v) => setDraft((d) => ({ ...d, sala: v }))} placeholder="Se asigna sola al analizar" />
+          <Field label="Descripción" value={draft.description} onChange={(v) => setDraft((d) => ({ ...d, description: v }))} placeholder="Lectura curatorial de la obra…" textarea />
+        </div>
+
+        <button onClick={onSaveDraft} disabled={!draft.b64 || !draft.title} style={{ width: "100%", marginTop: 24, padding: 14, border: "none", borderRadius: 28, background: (draft.b64 && draft.title) ? "#1c1714" : "#ede8e2", color: (draft.b64 && draft.title) ? "#fff" : "#9a9088", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: (draft.b64 && draft.title) ? "pointer" : "not-allowed" }}>
+          Guardar en el museo
+        </button>
+      </div>
+    </div>
+  );
 
   /* DETAIL */
   if (screen === "detail" && activeP) {
