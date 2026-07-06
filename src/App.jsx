@@ -2,34 +2,12 @@ import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "museo-cardosa-paintings";
 
-const SALAS_CFG = {
-  "Sala Naturaleza y Paisaje": {
-    desc: "Paisajes, jardines, naturaleza y el mundo exterior",
-    kw: ["paisaje","naturaleza","jardín","garden","marina","montaña","campo","flores","landscape","outdoor","bosque","rio","lago","atardecer","playa","costa","botanical","árbol","arboles","verde"],
-    bg: "#e8f2e8",
-  },
-  "Sala Figurativa y Retratos": {
-    desc: "Figuras humanas, retratos y escenas con personas",
-    kw: ["figurativo","retrato","figura","portrait","persona","mujer","hombre","niño","familia","family","realismo","rostro","face","people","human"],
-    bg: "#f2e8e8",
-  },
-  "Sala Abstracción y Color": {
-    desc: "Arte abstracto, geométrico y exploración del color",
-    kw: ["abstracto","abstract","geométrico","geometric","expresionismo","expressionism","minimalismo","contemporáneo","moderno","no figurativo"],
-    bg: "#e8eaf5",
-  },
-  "Sala Bodegones y Objetos": {
-    desc: "Bodegones, naturalezas muertas y composiciones de objetos",
-    kw: ["bodegón","still life","frutas","fruit","comida","food","jarrón","vase","flores cortadas","objetos","naturaleza muerta"],
-    bg: "#f5f0e8",
-  },
-};
-
-function getSala(style = "", desc = "", tech = "") {
-  const h = (style + " " + desc + " " + tech).toLowerCase();
-  for (const [name, cfg] of Object.entries(SALAS_CFG))
-    if (cfg.kw.some((k) => h.includes(k))) return name;
-  return "Sala Miscelánea";
+// Cada sala nace de la clasificación de Claude, no de una lista fija: el color
+// se deriva del propio nombre para que cualquier sala nueva tenga uno estable.
+function salaColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
+  return `hsl(${hash}, 40%, 91%)`;
 }
 
 function compress(file) {
@@ -63,11 +41,11 @@ function compress(file) {
   });
 }
 
-async function analyzeWithClaude(b64) {
+async function analyzeWithClaude(b64, existingSalas) {
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ b64 }),
+    body: JSON.stringify({ b64, existingSalas }),
   });
   const text = await response.text();
   if (!response.ok) throw new Error("API " + response.status + ": " + text.slice(0, 150));
@@ -129,15 +107,16 @@ export default function App() {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
+    const knownSalas = Object.keys(groups);
     for (const file of files) {
       try {
         setStatus("reading");
         setErrorMsg("");
         const b64 = await compress(file);
         setStatus("analyzing");
-        const info = await analyzeWithClaude(b64);
-        const sala = getSala(info.style, info.description, info.technique);
-        const p = { id: Date.now() + Math.random(), b64, sala, ...info };
+        const info = await analyzeWithClaude(b64, knownSalas);
+        const p = { id: Date.now() + Math.random(), b64, sala: info.sala || "Sala Miscelánea", ...info };
+        if (!knownSalas.includes(p.sala)) knownSalas.push(p.sala);
         setPaintings((prev) => [...prev, p]);
         setStatus("idle");
         setPrev("salas");
@@ -284,17 +263,17 @@ export default function App() {
               <p style={{ fontSize: 12, lineHeight: 1.7 }}>Las salas se crearán automáticamente cuando subas las primeras obras. Claude clasificará cada pintura y la asignará a la sala correcta.</p>
             </div>
           : Object.entries(groups).map(([s, obras]) => {
-              const cfg = SALAS_CFG[s] || { bg: "#f0ebe3", desc: "Obras variadas" };
+              const bg = salaColor(s);
               return (
                 <div key={s} onClick={() => { setActiveSala(s); setScreen("obras"); }} style={{ borderRadius: 14, overflow: "hidden", boxShadow: "0 3px 14px rgba(0,0,0,0.09)", cursor: "pointer", background: "#fff", marginBottom: 14 }}>
-                  <div style={{ height: 130, position: "relative", overflow: "hidden", background: cfg.bg }}>
-                    <Cover items={obras} bg={cfg.bg} />
+                  <div style={{ height: 130, position: "relative", overflow: "hidden", background: bg }}>
+                    <Cover items={obras} bg={bg} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 60%)" }} />
                     <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(255,255,255,0.92)", borderRadius: 20, padding: "3px 10px", fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#c8102e" }}>{obras.length} obra{obras.length !== 1 ? "s" : ""}</div>
                   </div>
                   <div style={{ padding: "14px 16px 16px" }}>
                     <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 600, color: "#1c1714", marginBottom: 3 }}>{s}</div>
-                    <div style={{ fontSize: 12, color: "#9a9088", lineHeight: 1.5 }}>{cfg.desc}</div>
+                    <div style={{ fontSize: 12, color: "#9a9088", lineHeight: 1.5 }}>Sala generada automáticamente por obras afines</div>
                   </div>
                 </div>
               );
