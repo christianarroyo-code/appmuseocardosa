@@ -1,48 +1,52 @@
 # Museo Cardosa
 
-Catálogo digital de las obras de la artista Cardosa. Sube una foto de un cuadro,
-Claude la analiza (título, técnica, estilo, dimensiones, descripción curatorial)
-y la organiza automáticamente en salas según su estilo.
+Catálogo digital de las obras de la artista Cardosa. Sube o haz una foto de un
+cuadro, el curador digital (Claude) le pone título, técnica, año, dimensiones
+y una lectura curatorial, y lo archiva solo en la sala que le corresponde —
+si ninguna sala existente encaja, crea una nueva.
+
+Es una PWA de un solo archivo (sin build, sin framework), igual en espíritu a
+"Jardín de Piedra de Fuego": HTML/CSS/JS plano, instalable, con IndexedDB
+(con fallback a localStorage) como almacén local.
 
 ## Estructura
 
-- `src/` — frontend en React + Vite (interfaz tipo app móvil).
-- `shared/curator.mjs` — lógica de la llamada a Claude (prompt del curador y
-  parseo de la respuesta), compartida por los dos backends de abajo.
-- `server/` — API en Express (`/api/analyze`) para desarrollo local o para
-  desplegar en cualquier host Node. La API key vive solo aquí, nunca en el navegador.
-- `netlify/functions/analyze.mjs` — la misma API como función serverless,
-  para desplegar en Netlify.
+- `index.html` — toda la app: interfaz, estilos y lógica.
+- `manifest.json` / `sw.js` / `icon-*.png` — la hacen instalable como PWA.
+- `shared/curator.mjs` — el prompt del curador y el parseo de la respuesta de Claude.
+- `netlify/functions/analyze.mjs` — única pieza de servidor: recibe la foto,
+  llama a Claude con `ANTHROPIC_API_KEY` (nunca viaja al navegador) y devuelve
+  la ficha catalográfica.
+- `netlify.toml` — publica la raíz tal cual y redirige `/api/*` a la función.
+
+A diferencia del jardín (que resuelve su autocompletado con APIs públicas
+gratuitas — GBIF y Wikipedia, sin clave), no existe una base pública de las
+obras de Cardosa: identificarlas requiere visión por IA, y esa llamada sí
+necesita una clave secreta. Por eso hace falta esta única función, aunque
+todo lo demás sea estático.
 
 ## Desarrollo local
 
-1. `npm install`
-2. Copia `.env.example` a `.env` y añade tu `ANTHROPIC_API_KEY`.
-3. `npm run dev` — levanta Vite (puerto 5173) y la API (puerto 3001) a la vez.
+Con la [Netlify CLI](https://docs.netlify.com/cli/get-started/) (sirve los
+estáticos y la función juntos, tal como en producción):
+
+1. `npm install -g netlify-cli` (si no la tienes)
+2. Copia `.env.example` a `.env` y añade tu `ANTHROPIC_API_KEY`
+3. `netlify dev` — levanta la app en `http://localhost:8888`
 
 ## Desplegar en Netlify
 
-El repo ya trae `netlify.toml` (build, publish y redirects de `/api/*` a la función).
-
-1. En Netlify: **Add new site → Import an existing project** y conecta este repo
-   (o usa `netlify deploy --prod` desde la carpeta del proyecto con la Netlify CLI).
+1. **Add new site → Import an existing project** y conecta este repo
+   (o `netlify deploy --prod` desde esta carpeta con la CLI).
 2. En **Site settings → Environment variables**, añade `ANTHROPIC_API_KEY`.
-3. Netlify ejecuta `npm run build`, publica `dist/` y despliega
-   `netlify/functions/analyze.mjs` como función — no hace falta gestionar servidor.
+3. Netlify publica la raíz y despliega `netlify/functions/analyze.mjs` como función.
 
-Un simple arrastrar-y-soltar de un ZIP estático **no sirve** para esta app: sin la
-función serverless, `/api/analyze` no existe y el análisis con IA fallará.
-
-## Otros hostings (con servidor Node propio)
-
-1. `npm run build` genera `dist/`.
-2. `npm start` sirve la API y los archivos estáticos desde un único proceso
-   Node (necesita `ANTHROPIC_API_KEY` y opcionalmente `PORT` en el entorno).
+Arrastrar solo el HTML/carpeta a app.netlify.com/drop **no basta**: sin la
+función desplegada, `/api/analyze` no existe y "Analizar con IA" fallará.
 
 ## Notas
 
-- Las obras se guardan en `localStorage` del navegador (sin base de datos).
-  Con muchas obras de alta resolución puede llenarse la cuota del navegador;
-  si eso ocurre habría que migrar a IndexedDB o a un backend con almacenamiento real.
-- Las salas ya no son una lista fija: Claude decide, al analizar cada obra,
-  si encaja en una sala existente o si hay que crear una nueva (ver `shared/curator.mjs`).
+- Las obras (con su imagen en base64) se guardan en IndexedDB del navegador,
+  con fallback a localStorage si IndexedDB no está disponible.
+- Las salas no son una lista fija: Claude decide, al analizar cada obra, si
+  encaja en una sala existente o si hay que crear una nueva.

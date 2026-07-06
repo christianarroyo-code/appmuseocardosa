@@ -1,29 +1,598 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Museo Cardosa</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #1c1714; }
-      body {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 32px 16px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Museo Cardosa</title>
+<meta name="description" content="Catálogo digital de las obras de la artista Cardosa — sube una foto y el curador digital la cataloga.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C8102E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cardosa">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#FAF8F5;--surface:#fff;--surface-soft:#F5F1EC;
+  --red-900:#7A0F22;--red-800:#A30F26;--red:#C8102E;--red-mid:#D63A52;--red-light:#E8899B;
+  --red-pale:#F8EAED;--red-xpale:#FCF3F4;
+  --ink:#1C1714;--ink-mid:#5A5048;--ink-muted:#9A9088;
+  --border:#EDE8E2;--border-mid:#DED6CC;
+  --shadow-xs:0 1px 3px rgba(28,23,20,.05);
+  --shadow-sm:0 3px 10px rgba(28,23,20,.07),0 1px 2px rgba(28,23,20,.05);
+  --shadow-md:0 10px 28px rgba(28,23,20,.11),0 3px 8px rgba(28,23,20,.06);
+  --shadow-lg:0 24px 56px rgba(28,23,20,.20),0 8px 20px rgba(28,23,20,.10);
+  --r:14px;--rs:9px;--rp:999px;
+  --nav-h:70px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);
+  min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  padding-bottom:var(--nav-h);
+}
+.serif{font-family:'Playfair Display',serif}
+button{font-family:inherit;}
+img{display:block;max-width:100%;}
+
+/* HEADER */
+header{
+  background:rgba(250,248,245,.86);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);
+  border-bottom:1px solid var(--border);padding:14px 18px 12px;position:sticky;top:0;z-index:50;
+}
+.header-row{display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto;}
+.mark{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+.mark-box{width:34px;height:34px;position:relative;flex-shrink:0;}
+.mark-box i{position:absolute;width:9px;height:9px;}
+.mark-box i:nth-child(1){top:0;left:0;border-top:2px solid var(--red);border-left:2px solid var(--red);}
+.mark-box i:nth-child(2){top:0;right:0;border-top:2px solid var(--red);border-right:2px solid var(--red);}
+.mark-box i:nth-child(3){bottom:0;left:0;border-bottom:2px solid var(--red);border-left:2px solid var(--red);}
+.mark-box i:nth-child(4){bottom:0;right:0;border-bottom:2px solid var(--red);border-right:2px solid var(--red);}
+.mark-text{min-width:0;flex:1;line-height:1.15;}
+.mark-text .l1{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);font-weight:600;}
+.mark-text .l2{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hstats{display:flex;gap:6px;flex-shrink:0;}
+.schip{background:var(--red-pale);border:1px solid rgba(200,16,46,.1);border-radius:var(--rp);padding:6px 11px;font-size:.68rem;font-weight:700;color:var(--red-800);white-space:nowrap;}
+
+/* MAIN / SCREENS */
+main{max-width:720px;margin:0 auto;padding:16px 18px 40px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+.banner{
+  display:flex;align-items:center;gap:8px;background:var(--red-xpale);border:1px solid var(--red-pale);
+  border-radius:var(--rs);padding:11px 14px;font-size:.8rem;color:var(--red-900);margin-bottom:16px;
+}
+.banner strong{font-weight:700;}
+
+/* photo dropzone */
+.dropzone{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  border:2px dashed var(--border-mid);border-radius:var(--r);background:var(--surface-soft);
+  min-height:220px;overflow:hidden;cursor:pointer;text-align:center;margin-bottom:14px;
+}
+.dropzone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.dropzone img{width:100%;height:220px;object-fit:cover;}
+.dropzone .dz-icon{font-size:28px;}
+.dropzone .dz-title{font-size:14px;font-weight:600;color:var(--ink);}
+.dropzone .dz-sub{font-size:12px;color:var(--ink-muted);}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:13px 18px;border:none;border-radius:var(--rp);font-size:.72rem;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:transform .15s var(--ease),opacity .15s var(--ease);
+}
+.btn:active{transform:scale(.98);}
+.btn:disabled{cursor:not-allowed;opacity:.55;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-ink{background:var(--ink);color:#fff;}
+.btn-ghost{background:#fff;border:1.5px solid var(--border);color:var(--ink);}
+.btn-sm{width:auto;padding:9px 18px;font-size:.66rem;}
+
+.field-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:22px;}
+.field-row{display:flex;gap:10px;}
+.field{flex:1;}
+.field label{display:block;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;}
+.field input,.field textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:.82rem;
+  color:var(--ink);background:#fff;font-family:inherit;
+}
+.field textarea{resize:vertical;line-height:1.5;}
+.field input:focus,.field textarea:focus{outline:2px solid var(--red-light);outline-offset:1px;}
+
+/* catalog */
+.searchbar{display:flex;gap:8px;margin-bottom:16px;}
+.searchbar input{
+  flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:var(--rp);font-size:.82rem;
+  background:#fff;font-family:inherit;
+}
+.searchbar input:focus{outline:2px solid var(--red-light);outline-offset:1px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:#fff;border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .15s var(--ease);}
+.card:hover{transform:translateY(-2px);}
+.card .thumb{height:130px;overflow:hidden;background:var(--surface-soft);}
+.card .thumb img{width:100%;height:100%;object-fit:cover;}
+.card .body{padding:11px 12px 13px;}
+.card .title{font-family:'Playfair Display',serif;font-style:italic;font-size:.78rem;color:var(--ink);line-height:1.35;margin-bottom:4px;}
+.card .meta{font-size:.62rem;color:var(--ink-muted);}
+.card .tag{display:inline-block;margin-top:6px;padding:2px 8px;background:var(--red-pale);border-radius:var(--rp);font-size:.58rem;color:var(--red-800);font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+
+.empty{border:2px dashed var(--border);border-radius:var(--r);padding:34px 20px;text-align:center;color:var(--ink-muted);background:#fff;}
+.empty .e-icon{font-size:30px;margin-bottom:10px;}
+.empty p{font-size:.78rem;line-height:1.7;}
+
+/* salas */
+.sala-card{border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm);cursor:pointer;background:#fff;margin-bottom:14px;}
+.sala-cover{height:128px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.sala-cover img{width:100%;height:100%;object-fit:cover;}
+.sala-cover .grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5) 0,transparent 60%);}
+.sala-cover .count{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);border-radius:var(--rp);padding:3px 10px;font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red);}
+.sala-info{padding:14px 16px 16px;}
+.sala-info .name{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.sala-info .desc{font-size:.72rem;color:var(--ink-muted);}
+
+/* bottom nav */
+nav.bottomnav{
+  position:fixed;left:0;right:0;bottom:0;height:var(--nav-h);background:#fff;border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;align-items:center;z-index:60;
+}
+nav.bottomnav .ntab{
+  background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+  color:var(--ink-muted);font-size:.58rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+}
+nav.bottomnav .ntab.active{color:var(--red);}
+nav.bottomnav .ntab .nicon{font-size:19px;}
+
+/* detail modal */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(28,23,20,.55);display:none;align-items:flex-end;justify-content:center;z-index:100;
+}
+.modal-backdrop.open{display:flex;}
+@media (min-width:640px){.modal-backdrop{align-items:center;}}
+.modal{
+  background:var(--cream);width:100%;max-width:520px;max-height:92vh;border-radius:22px 22px 0 0;overflow-y:auto;
+  box-shadow:var(--shadow-lg);
+}
+@media (min-width:640px){.modal{border-radius:22px;}}
+.modal-hero{height:280px;position:relative;background:var(--surface-soft);overflow:hidden;}
+.modal-hero img{width:100%;height:100%;object-fit:cover;}
+.modal-hero .close{
+  position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);
+  border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--ink);
+}
+.modal-body{padding:22px 24px 30px;}
+.modal-body .sala-tag{display:inline-block;padding:3px 10px;background:var(--red-pale);border-radius:var(--rp);font-size:.62rem;color:var(--red-800);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;}
+.modal-body h2{font-family:'Playfair Display',serif;font-size:1.4rem;font-style:italic;color:var(--ink);margin-bottom:4px;line-height:1.25;}
+.modal-body .year{font-size:.82rem;color:var(--ink-muted);margin-bottom:4px;}
+.modal-body .artist{font-size:.85rem;font-weight:600;color:var(--ink);}
+.modal-body hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.modal-body .desc{font-size:.82rem;color:var(--ink-mid);line-height:1.72;margin-bottom:16px;}
+.pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+.pill{padding:5px 12px;border:1px solid var(--border);border-radius:var(--rp);font-size:.7rem;color:var(--ink-mid);}
+.modal-actions{display:flex;flex-direction:column;gap:10px;}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="mark">
+      <div class="mark-box"><i></i><i></i><i></i><i></i></div>
+      <div class="mark-text"><div class="l1">Museo</div><div class="l2 serif">Cardosa</div></div>
+    </div>
+    <div class="hstats">
+      <span class="schip" id="statObras">0 obras</span>
+      <span class="schip" id="statSalas">0 salas</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- IDENTIFICAR -->
+  <section class="screen" id="screen-identify">
+    <div class="banner">📷 Sube o haz una foto y pulsa <strong>&nbsp;✨ Analizar&nbsp;</strong> para catalogar la obra</div>
+
+    <label class="dropzone" id="dropzone">
+      <input type="file" accept="image/*" id="photoInput">
+      <span id="dzPlaceholder">
+        <div class="dz-icon">📷</div>
+        <div class="dz-title">Foto de la obra</div>
+        <div class="dz-sub">Toca para hacer o subir una foto</div>
+      </span>
+      <img id="dzPreview" style="display:none" alt="">
+    </label>
+
+    <button class="btn btn-red" id="btnAnalyze" disabled>✨ Analizar con IA</button>
+
+    <div class="field-grid">
+      <div class="field"><label>Título</label><input id="fTitle" placeholder="ej. Atardecer en el jardín"></div>
+      <div class="field-row">
+        <div class="field"><label>Año</label><input id="fYear" placeholder="ej. 2021"></div>
+        <div class="field"><label>Técnica</label><input id="fTechnique" placeholder="ej. Óleo"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Estilo</label><input id="fStyle" placeholder="ej. Paisaje"></div>
+        <div class="field"><label>Dimensiones</label><input id="fDimensions" placeholder="ej. 80 × 60 cm"></div>
+      </div>
+      <div class="field"><label>Sala</label><input id="fSala" placeholder="Se asigna sola al analizar"></div>
+      <div class="field"><label>Descripción</label><textarea id="fDescription" rows="4" placeholder="Lectura curatorial de la obra…"></textarea></div>
+    </div>
+
+    <button class="btn btn-ink" id="btnSave" disabled>Guardar en el museo</button>
+  </section>
+
+  <!-- CATÁLOGO -->
+  <section class="screen" id="screen-catalog">
+    <div class="searchbar">
+      <input type="text" id="searchInput" placeholder="Buscar por título, técnica, sala…">
+    </div>
+    <div id="catalogGrid" class="grid"></div>
+    <div class="empty" id="catalogEmpty" style="display:none">
+      <div class="e-icon">🖼️</div>
+      <p>Todavía no hay obras en el catálogo.<br>Ve a «Identificar» para subir la primera.</p>
+    </div>
+  </section>
+
+  <!-- SALAS -->
+  <section class="screen" id="screen-salas">
+    <div id="salasList"></div>
+    <div class="empty" id="salasEmpty" style="display:none">
+      <div class="e-icon">🏛️</div>
+      <p>Las salas se crean solas cuando subas las primeras obras: el curador digital decide en cuál encaja cada una.</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottomnav">
+  <button class="ntab active" data-screen="identify"><span class="nicon">🔍</span><span>Identificar</span></button>
+  <button class="ntab" data-screen="catalog"><span class="nicon">🖼️</span><span>Catálogo</span></button>
+  <button class="ntab" data-screen="salas"><span class="nicon">🏛️</span><span>Salas</span></button>
+</nav>
+
+<!-- DETAIL MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-hero">
+      <img id="mImg" alt="">
+      <button class="close" id="mClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <span class="sala-tag" id="mSala"></span>
+      <h2 class="serif" id="mTitle"></h2>
+      <p class="year" id="mYear"></p>
+      <p class="artist">Cardosa</p>
+      <hr>
+      <p class="desc" id="mDescription"></p>
+      <div class="pillrow" id="mPills"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="mDelete">Eliminar obra</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ---------- almacenamiento: IndexedDB con fallback a localStorage ---------- */
+const DB_NAME = 'museo-cardosa-db', STORE = 'kv', LS_KEY = 'museo-cardosa-obras';
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const r = tx.objectStore(STORE).get(key);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function loadObras() {
+  try {
+    const fromIdb = await idbGet('obras');
+    if (fromIdb) return fromIdb;
+  } catch (e) { /* IndexedDB no disponible */ }
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+}
+async function saveObras() {
+  try { await idbSet('obras', obras); return; } catch (e) { /* cae a localStorage */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(obras)); } catch (e) { /* cuota llena: se ignora */ }
+}
+
+/* ---------- estado ---------- */
+let obras = [];
+let draft = { b64: '', title: '', year: '', technique: '', style: '', dimensions: '', description: '', sala: '' };
+let currentScreen = 'identify';
+let activeSala = null;
+let searchText = '';
+
+/* ---------- utilidades ---------- */
+function salaColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
+  return `hsl(${hash}, 40%, 91%)`;
+}
+function groupBySala(list) {
+  const groups = {};
+  list.forEach((p) => { (groups[p.sala] ||= []).push(p); });
+  return groups;
+}
+function compress(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1024;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else { w = Math.round((w * MAX) / h); h = MAX; }
+        }
+        try {
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        } catch (err) { resolve(dataUrl.split(',')[1]); }
+      };
+      img.onerror = () => resolve(dataUrl.split(',')[1]);
+      img.src = dataUrl;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+async function analyzeWithClaude(b64, existingSalas) {
+  const response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ b64, existingSalas }),
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error('API ' + response.status + ': ' + text.slice(0, 150));
+  return JSON.parse(text);
+}
+
+/* ---------- navegación entre pantallas ---------- */
+function switchTab(name) {
+  currentScreen = name;
+  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.ntab').forEach((t) => t.classList.toggle('active', t.dataset.screen === name));
+  if (name === 'catalog') renderCatalog();
+  if (name === 'salas') renderSalas();
+}
+document.querySelectorAll('.ntab').forEach((t) => t.addEventListener('click', () => switchTab(t.dataset.screen)));
+
+/* ---------- pantalla Identificar ---------- */
+const photoInput = document.getElementById('photoInput');
+const dzPreview = document.getElementById('dzPreview');
+const dzPlaceholder = document.getElementById('dzPlaceholder');
+const btnAnalyze = document.getElementById('btnAnalyze');
+const btnSave = document.getElementById('btnSave');
+const fields = ['title', 'year', 'technique', 'style', 'dimensions', 'sala', 'description'];
+
+function fieldEl(name) { return document.getElementById('f' + name[0].toUpperCase() + name.slice(1)); }
+
+function renderDraft() {
+  fields.forEach((f) => { fieldEl(f).value = draft[f] || ''; });
+  if (draft.b64) {
+    dzPreview.src = 'data:image/jpeg;base64,' + draft.b64;
+    dzPreview.style.display = 'block';
+    dzPlaceholder.style.display = 'none';
+  } else {
+    dzPreview.style.display = 'none';
+    dzPlaceholder.style.display = 'flex';
+  }
+  btnAnalyze.disabled = !draft.b64;
+  btnSave.disabled = !(draft.b64 && draft.title.trim());
+}
+fields.forEach((f) => fieldEl(f).addEventListener('input', (e) => {
+  draft[f] = e.target.value;
+  if (f === 'title') btnSave.disabled = !(draft.b64 && draft.title.trim());
+}));
+
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    draft.b64 = await compress(file);
+    renderDraft();
+  } catch (err) {
+    alert('No se pudo leer la foto: ' + err.message);
+  }
+});
+
+btnAnalyze.addEventListener('click', async () => {
+  if (!draft.b64) return;
+  const original = btnAnalyze.textContent;
+  btnAnalyze.disabled = true;
+  btnAnalyze.textContent = '✨ Analizando…';
+  try {
+    const existingSalas = Object.keys(groupBySala(obras));
+    const info = await analyzeWithClaude(draft.b64, existingSalas);
+    draft = { ...draft, ...info };
+    renderDraft();
+  } catch (err) {
+    alert('Error al analizar la obra: ' + err.message);
+  } finally {
+    btnAnalyze.textContent = original;
+    btnAnalyze.disabled = !draft.b64;
+  }
+});
+
+btnSave.addEventListener('click', async () => {
+  if (!draft.b64 || !draft.title.trim()) return;
+  const p = { id: Date.now() + Math.random(), ...draft, sala: draft.sala.trim() || 'Sala Miscelánea' };
+  obras.push(p);
+  await saveObras();
+  draft = { b64: '', title: '', year: '', technique: '', style: '', dimensions: '', description: '', sala: '' };
+  renderDraft();
+  renderHeaderStats();
+  switchTab('catalog');
+  openDetail(p.id);
+});
+
+/* ---------- pantalla Catálogo ---------- */
+const catalogGrid = document.getElementById('catalogGrid');
+const catalogEmpty = document.getElementById('catalogEmpty');
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchText = e.target.value.trim().toLowerCase();
+  renderCatalog();
+});
+
+function renderCatalog() {
+  const list = obras.filter((p) => {
+    if (!searchText) return true;
+    const h = `${p.title} ${p.technique} ${p.style} ${p.sala} ${p.year}`.toLowerCase();
+    return h.includes(searchText);
+  }).slice().reverse();
+
+  catalogGrid.innerHTML = '';
+  catalogEmpty.style.display = list.length ? 'none' : 'block';
+  list.forEach((p) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="thumb"><img src="data:image/jpeg;base64,${p.b64}" alt=""></div>
+      <div class="body">
+        <p class="title">${escapeHtml(p.title)}</p>
+        <p class="meta">Cardosa · ${escapeHtml(p.year || '')}</p>
+        <span class="tag">${escapeHtml(p.style || p.sala)}</span>
+      </div>`;
+    card.addEventListener('click', () => openDetail(p.id));
+    catalogGrid.appendChild(card);
+  });
+}
+
+/* ---------- pantalla Salas ---------- */
+const salasList = document.getElementById('salasList');
+const salasEmpty = document.getElementById('salasEmpty');
+
+function renderSalas() {
+  const groups = groupBySala(obras);
+  const names = Object.keys(groups);
+  salasList.innerHTML = '';
+  salasEmpty.style.display = names.length ? 'none' : 'block';
+
+  names.forEach((name) => {
+    const list = groups[name];
+    const bg = salaColor(name);
+    const cover = list.slice(0, 4);
+    const card = document.createElement('div');
+    card.className = 'sala-card';
+    const coverHtml = cover.length === 1
+      ? `<img src="data:image/jpeg;base64,${cover[0].b64}" alt="">`
+      : cover.map((p) => `<img src="data:image/jpeg;base64,${p.b64}" alt="">`).join('') + '<div></div>'.repeat(Math.max(0, 4 - cover.length));
+    card.innerHTML = `
+      <div class="sala-cover" style="background:${bg}">
+        ${coverHtml}
+        <div class="grad"></div>
+        <div class="count">${list.length} obra${list.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="sala-info">
+        <div class="name serif">${escapeHtml(name)}</div>
+        <div class="desc">Sala generada automáticamente por obras afines</div>
+      </div>`;
+    card.addEventListener('click', () => {
+      activeSala = name;
+      searchText = name.toLowerCase();
+      document.getElementById('searchInput').value = name;
+      switchTab('catalog');
+    });
+    salasList.appendChild(card);
+  });
+}
+
+/* ---------- modal de detalle ---------- */
+const modalBackdrop = document.getElementById('modalBackdrop');
+let openId = null;
+
+function openDetail(id) {
+  const p = obras.find((o) => o.id === id);
+  if (!p) return;
+  openId = id;
+  document.getElementById('mImg').src = 'data:image/jpeg;base64,' + p.b64;
+  document.getElementById('mSala').textContent = p.sala;
+  document.getElementById('mTitle').textContent = p.title;
+  document.getElementById('mYear').textContent = p.year || '';
+  document.getElementById('mDescription').textContent = p.description || '';
+  document.getElementById('mPills').innerHTML = [p.technique, p.style, p.dimensions]
+    .filter(Boolean).map((s) => `<span class="pill">${escapeHtml(s)}</span>`).join('');
+  modalBackdrop.classList.add('open');
+}
+function closeDetail() { modalBackdrop.classList.remove('open'); openId = null; }
+document.getElementById('mClose').addEventListener('click', closeDetail);
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeDetail(); });
+
+document.getElementById('mDelete').addEventListener('click', async () => {
+  if (openId == null) return;
+  if (!confirm('¿Eliminar esta obra del museo?')) return;
+  obras = obras.filter((o) => o.id !== openId);
+  await saveObras();
+  closeDetail();
+  renderHeaderStats();
+  renderCatalog();
+  renderSalas();
+});
+
+/* ---------- helpers ---------- */
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function renderHeaderStats() {
+  document.getElementById('statObras').textContent = `${obras.length} obra${obras.length !== 1 ? 's' : ''}`;
+  const nSalas = Object.keys(groupBySala(obras)).length;
+  document.getElementById('statSalas').textContent = `${nSalas} sala${nSalas !== 1 ? 's' : ''}`;
+}
+
+/* ---------- arranque ---------- */
+(async function init() {
+  obras = await loadObras();
+  renderDraft();
+  renderHeaderStats();
+  renderCatalog();
+  renderSalas();
+  switchTab('identify');
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
 </html>
