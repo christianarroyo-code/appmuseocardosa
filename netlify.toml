@@ -1,6 +1,14 @@
 [build]
   publish = "."
 
+[[headers]]
+  # Sin esto, el navegador puede servir sw.js desde su caché HTTP normal al
+  # comprobar si hay una versión nueva, y entonces nunca detecta el cambio:
+  # se queda para siempre con el service worker (y el index.html) viejos.
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
